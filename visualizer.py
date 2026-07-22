@@ -110,6 +110,10 @@ class VisualizerApp:
         t = getattr(menu, 't', None)
         if isinstance(t, threading.Thread) and t.is_alive() and t is not threading.current_thread():
             t.join(timeout=3)
+        # backlight_stopped makes fastColorWipe paint black instead of the
+        # backlight color — the strip keeps its own PSU after the Pi halts, so
+        # whatever is painted here stays lit until the strip loses power.
+        self.ci.ledsettings.backlight_stopped = True
         fastColorWipe(self.ci.ledstrip.strip, True, self.ci.ledsettings)
         sys.exit(0)
     
