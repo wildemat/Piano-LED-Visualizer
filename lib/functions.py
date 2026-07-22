@@ -901,10 +901,10 @@ def startup_animation(ledstrip, ledsettings, duration_ms=2000, max_leds=30):
 
         time.sleep(int(step_delay))
 
-    for i in range(total_pixels):
-        strip.setPixelColor(i, 0)
-
-    strip.show()
+    # End on the configured backlight, not black: the init-time fastColorWipe in
+    # ComponentInitializer races this thread and always loses, so whatever this
+    # animation leaves behind IS the boot state of the strip.
+    fastColorWipe(strip, True, ledsettings)
 
 
 def theaterChaseRainbow(ledstrip, ledsettings, menu, speed_ms=None):
