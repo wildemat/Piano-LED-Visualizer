@@ -4,12 +4,13 @@ import sys
 import os
 import fcntl
 import signal
+import threading
 import time
 
 from lib.argument_parser import ArgumentParser
 from lib.component_initializer import ComponentInitializer
 from lib.functions import fastColorWipe, screensaver, \
-    manage_idle_animation, stop_animations
+    manage_idle_animation
 from lib.gpio_handler import GPIOHandler
 from lib.led_effects_processor import LEDEffectsProcessor
 from lib.ledsettings import LedSettings
@@ -99,8 +100,16 @@ class VisualizerApp:
         self._last_menu_tick = 0.0
 
     def handle_shutdown(self, signum, frame):
-        # Turn off all LEDs before shutting down
-        stop_animations(self.ci.menu)
+        # Turn off all LEDs before shutting down. Clear the animation flags
+        # directly — stop_animations() restores them after 0.3 s, so the
+        # animation thread would repaint after the wipe and the strip would
+        # latch that frame once the process dies.
+        menu = self.ci.menu
+        menu.is_idle_animation_running = False
+        menu.is_animation_running = False
+        t = getattr(menu, 't', None)
+        if isinstance(t, threading.Thread) and t.is_alive() and t is not threading.current_thread():
+            t.join(timeout=3)
         fastColorWipe(self.ci.ledstrip.strip, True, self.ci.ledsettings)
         sys.exit(0)
     
