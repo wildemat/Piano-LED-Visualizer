@@ -81,13 +81,17 @@ class MIDIEventProcessor:
                 except Exception as e:
                     logger.warning(f"[process midi events] Unexpected exception occurred: {e}")
 
-            midiports.last_activity = time.time()
-            # Update state manager for MIDI activity
-            if self.state_manager:
-                self.state_manager.update_midi_activity()
-
             msg_type = getattr(msg, "type", None)
             velocity = getattr(msg, "velocity", 0)
+
+            # System-realtime traffic is keep-alive, not user activity — a piano
+            # that is merely powered on streams Clock + Active Sensing, which
+            # must not hold off the backlight timeout, IDLE state or screensaver.
+            if msg_type not in ("clock", "active_sensing"):
+                midiports.last_activity = time.time()
+                # Update state manager for MIDI activity
+                if self.state_manager:
+                    self.state_manager.update_midi_activity()
 
             if ledsettings.mode != "Disabled" and msg_type in ("note_on", "note_off"):
                 note_position = get_position(msg.note, ledstrip, ledsettings)
